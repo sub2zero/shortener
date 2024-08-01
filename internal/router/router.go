@@ -21,8 +21,8 @@ func NewRouter(mh handler.UrlHandler) *mux.Router {
 
 	// r.HandleFunc("/update/", mh.JSONUpdate).MatcherFunc(matchJSON).
 	// 	Methods(http.MethodPost)
-	// r.HandleFunc("/update/{type}/{name}/{value}", mh.PostUpdate).
-	// 	Methods(http.MethodPost)
+	r.HandleFunc("/update/{url}/{shortUrl}", mh.PostUpdate).
+		Methods(http.MethodPost)
 	return r
 }
 
