@@ -2,8 +2,10 @@ package remote
 
 import (
 	"log"
+	"mime"
 	"net/http"
 	handler "shortener/internal/handler"
+	"strings"
 
 	"github.com/gorilla/mux"
 )
@@ -19,8 +21,8 @@ func NewRouter(mh handler.UrlHandler) *mux.Router {
 	// r.HandleFunc("/value/", mh.GetByNameJSON).MatcherFunc(matchJSON).
 	// 	Methods(http.MethodPost)
 
-	// r.HandleFunc("/update/", mh.JSONUpdate).MatcherFunc(matchJSON).
-	// 	Methods(http.MethodPost)
+	r.HandleFunc("/url/{url}", mh.Post).
+		Methods(http.MethodPost)
 	r.HandleFunc("/update/{url}/{shortUrl}", mh.PostUpdate).
 		Methods(http.MethodPost)
 	return r
@@ -34,12 +36,12 @@ func loggingMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// func matchJSON(r *http.Request, rm *mux.RouteMatch) bool {
-// 	ctHdr := r.Header.Get("Content-Type")
-// 	contentType, params, err := mime.ParseMediaType(ctHdr)
-// 	if err != nil {
-// 		return false
-// 	}
-// 	charset := params["charset"]
-// 	return contentType == "application/json" && (charset == "" || strings.EqualFold(charset, "UTF-8"))
-// }
+func matchJSON(r *http.Request, rm *mux.RouteMatch) bool {
+	ctHdr := r.Header.Get("Content-Type")
+	contentType, params, err := mime.ParseMediaType(ctHdr)
+	if err != nil {
+		return false
+	}
+	charset := params["charset"]
+	return contentType == "application/json" && (charset == "" || strings.EqualFold(charset, "UTF-8"))
+}

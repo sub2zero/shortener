@@ -18,6 +18,24 @@ func NewUrlHandler(ms store.UrlStore) UrlHandler {
 		urlService: ms,
 	}
 }
+func (mh UrlHandler) Post(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	vars := mux.Vars(r)
+	// typeParam := vars["type"]
+	nameParam := vars["url"]
+	// valueParam := vars["shorturl"]
+
+	_, err := w.Write([]byte(nameParam))
+	if err != nil {
+		log.Println("Failed writing HTTP response")
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
 func (mh UrlHandler) PostUpdate(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
