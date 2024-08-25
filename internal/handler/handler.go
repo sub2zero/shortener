@@ -1,90 +1,127 @@
 package handler
 
 import (
-	"log"
+	"encoding/json"
 	"net/http"
 	store "shortener/internal/struct"
-	"strconv"
 
 	"github.com/gorilla/mux"
+	"github.com/gosimple/slug"
 )
 
+type urlstore interface {
+	Add(name string, shortUrl store.ShortUrls) error
+	Get(name string) (store.ShortUrls, error)
+	List() (map[string]store.ShortUrls, error)
+	Update(name string, shortUrl store.ShortUrls) error
+	Remove(name string) error
+}
 type UrlHandler struct {
-	urlService store.UrlStore
+	store urlstore
 }
 
-func NewUrlHandler(ms store.UrlStore) UrlHandler {
-	return UrlHandler{
-		urlService: ms,
+func NewUrlHandler(s urlstore) *UrlHandler {
+	return &UrlHandler{
+		store: s,
 	}
 }
-func (mh UrlHandler) Post(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+func InternalServerErrorHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusInternalServerError)
+	w.Write([]byte("500 Internal Server Error"))
+}
+
+func NotFoundHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotFound)
+	w.Write([]byte("404 Not Found"))
+}
+func (h UrlHandler) CreateUrl(w http.ResponseWriter, r *http.Request) {
+	var url store.ShortUrls
+
+	if err := json.NewDecoder(r.Body).Decode(&url); err != nil {
+		InternalServerErrorHandler(w, r)
 		return
 	}
 
-	vars := mux.Vars(r)
-	// typeParam := vars["type"]
-	nameParam := vars["url"]
-	// valueParam := vars["shorturl"]
+	resourceID := slug.Make(url.Full)
 
-	_, err := w.Write([]byte(nameParam))
-	if err != nil {
-		log.Println("Failed writing HTTP response")
+	if err := h.store.Add(resourceID, url); err != nil {
+		InternalServerErrorHandler(w, r)
 		return
 	}
+
 	w.WriteHeader(http.StatusOK)
 }
-func (mh UrlHandler) PostUpdate(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+func (h UrlHandler) ListUrls(w http.ResponseWriter, r *http.Request) {
+	url, err := h.store.List()
+
+	jsonBytes, err := json.Marshal(url)
+	if err != nil {
+		InternalServerErrorHandler(w, r)
 		return
 	}
 
-	vars := mux.Vars(r)
-	// typeParam := vars["type"]
-	nameParam := vars["url"]
-	valueParam := vars["shorturl"]
+	w.WriteHeader(http.StatusOK)
+	w.Write(jsonBytes)
+}
+func (h UrlHandler) GetUrl(w http.ResponseWriter, r *http.Request) {
+	id := mux.Vars(r)["id"]
 
-	// if validateURLType(typeParam) {
-	// 	http.Error(w, "Not implemented", http.StatusNotImplemented)
-	// 	return
-	// }
+	url, err := h.store.Get(id)
+	if err != nil {
+		if err == store.NotFoundErr {
+			NotFoundHandler(w, r)
+			return
+		}
 
-	if _, err := strconv.ParseFloat(valueParam, 64); err != nil {
-		http.Error(w, "Bad request", http.StatusBadRequest)
+		InternalServerErrorHandler(w, r)
 		return
 	}
 
-	// if typeParam == config.Counter {
-	// 	if _, err := strconv.Atoi(valueParam); err != nil {
-	// 		http.Error(w, "Bad request", http.StatusBadRequest)
-	// 		return
-	// 	}
-	// }
-
-	if err := mh.urlService.AddUrl(nameParam, valueParam); err != nil {
-		http.Error(w, "See other request", http.StatusSeeOther)
+	jsonBytes, err := json.Marshal(url)
+	if err != nil {
+		InternalServerErrorHandler(w, r)
 		return
 	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write(jsonBytes)
+}
+func (h UrlHandler) UpdateUrl(w http.ResponseWriter, r *http.Request) {
+	id := mux.Vars(r)["id"]
+
+	// Recipe object that will be populated from json payload
+	var url store.ShortUrls
+	if err := json.NewDecoder(r.Body).Decode(&url); err != nil {
+		InternalServerErrorHandler(w, r)
+		return
+	}
+
+	if err := h.store.Update(id, url); err != nil {
+		if err == store.NotFoundErr {
+			NotFoundHandler(w, r)
+			return
+		}
+
+		InternalServerErrorHandler(w, r)
+		return
+	}
+
+	jsonBytes, err := json.Marshal(url)
+	if err != nil {
+		InternalServerErrorHandler(w, r)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write(jsonBytes)
+}
+func (h UrlHandler) DeleteUrl(w http.ResponseWriter, r *http.Request) {
+	id := mux.Vars(r)["id"]
+
+	if err := h.store.Remove(id); err != nil {
+		InternalServerErrorHandler(w, r)
+		return
+	}
+
 	w.WriteHeader(http.StatusOK)
 }
-func (mh UrlHandler) GetAll(w http.ResponseWriter, r *http.Request) {
-	ms := mh.urlService.GetAll()
-	if r.Method != http.MethodGet {
-		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-		log.Println(r.Method)
-		return
-	}
-	_, err := w.Write([]byte(ms))
-	if err != nil {
-		log.Println("Failed writing HTTP response")
-		return
-	}
-
-}
-
-// func validateURLType(typeParam string) bool {
-// 	return typeParam != config.URL
-// }

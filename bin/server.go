@@ -7,20 +7,42 @@ import (
 	"net"
 	"net/http"
 	handler "shortener/internal/handler"
-	router "shortener/internal/router"
 	store "shortener/internal/struct"
+
+	"github.com/gorilla/mux"
 )
 
 type serverAddress string
 
 const serverAdd serverAddress = "127.0.0.1"
 
-func main() {
-	mStore := new(store.UrlStore)
-	mStore.Create()
-	eh := handler.NewUrlHandler(*mStore)
+type homeHandler struct{}
 
-	r := router.NewRouter(eh)
+func (h *homeHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("This is my home page"))
+}
+func loggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+		log.Println(r.Method + " requestURI: " + r.RequestURI + " from: " + r.RemoteAddr)
+		next.ServeHTTP(w, r)
+	})
+}
+func main() {
+	store := store.NewUrlStore()
+	UrlHandler := handler.NewUrlHandler(store)
+	home := homeHandler{}
+
+	r := mux.NewRouter()
+	r.Use(loggingMiddleware)
+
+	// Register the routes
+	r.HandleFunc("/", home.ServeHTTP)
+	r.HandleFunc("/url", UrlHandler.ListUrls).Methods("GET")
+	r.HandleFunc("/url", UrlHandler.CreateUrl).Methods("POST")
+	r.HandleFunc("/url/{id}", UrlHandler.GetUrl).Methods("GET")
+	r.HandleFunc("/url/{id}", UrlHandler.UpdateUrl).Methods("PUT")
+	r.HandleFunc("/url/{id}", UrlHandler.DeleteUrl).Methods("DELETE")
 
 	ctx, cancelCtx := context.WithCancel(context.Background())
 	serverOne := &http.Server{
