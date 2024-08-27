@@ -1,6 +1,8 @@
 package store
 
-import "errors"
+import (
+	"errors"
+)
 
 var (
 	NotFoundErr = errors.New("not found")
@@ -23,11 +25,11 @@ func (m UrlStore) Add(name string, ShortUrls ShortUrls) error {
 }
 
 func (m UrlStore) Get(name string) (ShortUrls, error) {
-
+	println("looking for key %s", name)
 	if val, ok := m.list[name]; ok {
 		return val, nil
 	}
-
+	// println("Value %s not found in %s", name, m.list[name])
 	return ShortUrls{}, NotFoundErr
 }
 
