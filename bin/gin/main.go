@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"html/template"
 	"log"
 	"net/http"
 	store "shortener/internal/struct"
@@ -19,6 +21,11 @@ func main() {
 	r := gin.Default()
 	r.Use(gin.Logger())
 	// Instantiate recipe Handler and provide a data store
+	r.Delims("{[{", "}]}")
+	r.SetFuncMap(template.FuncMap{
+		"formatAsDate": formatAsDate,
+	})
+	r.LoadHTMLFiles("./templates/index.tmpl")
 
 	store := store.NewUrlStore()
 	UrlHandler := NewUrlHandler(store)
@@ -35,8 +42,19 @@ func main() {
 	// Start the server
 	r.Run()
 }
+
+func formatAsDate(t time.Time) string {
+	year, month, day := t.Date()
+	return fmt.Sprintf("%d%02d/%02d", year, month, day)
+}
+
 func homePage(c *gin.Context) {
-	c.String(http.StatusOK, "This is my home page")
+	// c.String(http.StatusOK, "This is my home page")
+	// Serve the HTML form
+
+	c.HTML(http.StatusOK, "index.tmpl", gin.H{
+		"now": time.Date(2017, 0o7, 0o1, 0, 0, 0, 0, time.UTC),
+	})
 }
 
 func generateShortKey() string {
