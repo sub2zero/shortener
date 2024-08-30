@@ -122,7 +122,7 @@ func (h UrlHandler) CreateUrl(c *gin.Context) {
 	h.store.Add(id, url)
 
 	// return success payload
-	c.JSON(http.StatusOK, gin.H{"status": "success"})
+	c.JSON(http.StatusOK, gin.H{"shortURL": "localhost:8080/" + url.Id})
 }
 func (h UrlHandler) ListUrls(c *gin.Context) {
 	r, err := h.store.List()
