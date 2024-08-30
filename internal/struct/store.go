@@ -6,8 +6,8 @@ import (
 
 // Represents a recipe
 type ShortUrls struct {
-	Full string `json:"Full"`
-	Id   string `json:"id"`
+	Full string `form:"Full"`
+	Id   string `form:"id"`
 }
 
 func GenerateUUID() string {

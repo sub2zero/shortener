@@ -100,11 +100,17 @@ func (h UrlHandler) RedirectUrl(c *gin.Context) {
 
 func (h UrlHandler) CreateUrl(c *gin.Context) {
 	var url store.ShortUrls
-
-	if err := c.ShouldBindJSON(&url); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
+	// var testurl string
+	url.Full = c.PostForm("Full")
+	log.Println("got Full url: ", url.Full)
+	// if c.Bind(&testurl) == nil {
+	// 	log.Println(`binding simple geting url by id: `, testurl)
+	// }
+	// if err := c.ShouldBindJSON(&url); err != nil {
+	// 	log.Println(`JSON geting url by id: `, url)
+	// 	c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+	// 	return
+	// }
 
 	// create a url friendly name
 	// id := GenerateUUID()
